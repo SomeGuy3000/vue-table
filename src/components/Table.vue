@@ -30,7 +30,7 @@
         </tr>
       </tbody>
     </table>
-    <div class="mx-4 my-4" v-if="pagination === true && displayedRows.length >= pageSize">
+    <div class="mx-2 my-2" v-if="pagination === true && displayedRows.length >= pageSize">
       <button class="float-left border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage != 1" @click="prevPage">Previous</button> 
       <button class="float-right border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage * pageSize < displayedRows.length" @click="nextPage">Next</button>
     </div>
@@ -139,6 +139,8 @@ export default {
           let filteredRows = this.tabRows.filter(item => {
             return item.name.toLowerCase().indexOf(this.searchForItem.toLowerCase()) > -1
           })
+          // eslint-disable-next-line vue/no-side-effects-in-computed-properties
+          this.displayedRows = filteredRows
           return filteredRows.filter((row, index) => {
             let start = (this.currentPage-1)*this.pageSize
             let end = this.currentPage*this.pageSize
@@ -146,7 +148,7 @@ export default {
           })
         }
         // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        this.displayedRows = sortedRows;
+        this.displayedRows = sortedRows
         return sortedRows.filter((row, index) => {
           let start = (this.currentPage-1)*this.pageSize
           let end = this.currentPage*this.pageSize
