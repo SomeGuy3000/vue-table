@@ -44,6 +44,7 @@ export default {
   name: 'Label',
   props: {
     endpoint: String,
+    updateOnEndpointChange: Boolean,
     displayOrder: String,
     search: Boolean,
     sorting: Boolean,
@@ -59,7 +60,8 @@ export default {
       currentSortDir:'asc',
       pageSize:3,
       currentPage:1,
-      searchForItem: ''
+      searchForItem: '',
+      endpointRefreshCooldown: 10000
     }
   },
   methods: {
@@ -113,17 +115,27 @@ export default {
   async mounted () {
     this.endpointRes = await this.getDataFromEndpoint(this.endpoint)
     this.tabElements(this.endpointRes, this.splitDisplayOrder)
+    if (this.updateOnEndpointChange === true){
+      await setInterval(async () => { 
+        let res = await this.getDataFromEndpoint(this.endpoint)
+        if (JSON.stringify(res) != JSON.stringify(this.endpointRes) && res){
+          this.tabRows = []
+          this.endpointRes = res
+          this.tabElements(this.endpointRes, this.splitDisplayOrder)
+        }
+      }, this.endpointRefreshCooldown);
+    }
   },
   computed: {
     sortedRows () {
       // eslint-disable-next-line vue/no-side-effects-in-computed-properties
       let sortedRows = this.tabRows.sort((a,b) => {
-        let modifier = 1
-        if(this.currentSortDir === 'desc') modifier = -1
-        if(a[this.currentSort] < b[this.currentSort]) return -1 * modifier
-        if(a[this.currentSort] > b[this.currentSort]) return 1 * modifier
-        return 0
-      })
+          let modifier = 1
+          if(this.currentSortDir === 'desc') modifier = -1
+          if(a[this.currentSort] < b[this.currentSort]) return -1 * modifier
+          if(a[this.currentSort] > b[this.currentSort]) return 1 * modifier
+          return 0
+        })
       if (this.pagination === false) {
         if (this.searchForItem != ""){
           return this.tabRows.filter(item => {
