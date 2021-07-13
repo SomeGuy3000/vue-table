@@ -1,38 +1,43 @@
 <template>
   <div class="Label my-2">
-    <div class="float-right my-2 " v-if="search === true">
-      Search:
-      <input class="text-gray-600 border border-gray-600 rounded-sm px-2" type="text" v-model="searchForItem" placeholder="Type something here.." @input="searchChanged">
+    <div v-if="endpointRes && endpointRes != null && endpointError == null">
+      <div class="float-right my-2 " v-if="search === true">
+        Search:
+        <input class="text-gray-600 border border-gray-600 rounded-sm px-2" type="text" v-model="searchForItem" placeholder="Type something here.." @input="searchChanged">
+      </div>
+      <table class="table-auto border-collapse w-full">
+        <thead>
+          <tr class="text-gray-600">
+            <th v-for="path in splitDisplayOrder" :key="path" v-bind:path="path" @click="sort(path)" >{{capitalizeFirstLetter(path.replace(/\./g,' '))}}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="obj in sortedRows" :key="obj" class="even:bg-gray-100">
+            <td class="border border-gray-600 px-2 py-1" v-for="path in splitDisplayOrder" :key="path" >
+              <div v-if="path == 'email'">
+                <a class="underline" v-bind:href="'mailto:' + obj[path]">
+                  {{obj[path]}}
+                </a>
+              </div>
+              <div v-else-if="path == 'website'">
+                <a class="underline" target="_blank" v-bind:href="'https://' + obj[path]">
+                  {{obj[path]}}
+                </a>
+              </div>
+              <div v-else>
+                {{obj[path]}}
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="mx-2 my-2" v-if="pagination === true && displayedRows.length >= pageSize">
+        <button class="float-left border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage != 1" @click="prevPage">Previous</button> 
+        <button class="float-right border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage * pageSize < displayedRows.length" @click="nextPage">Next</button>
+      </div>
     </div>
-    <table class="table-auto border-collapse w-full">
-      <thead>
-        <tr class="text-gray-600">
-          <th v-for="path in splitDisplayOrder" :key="path" v-bind:path="path" @click="sort(path)" >{{capitalizeFirstLetter(path.replace(/\./g,' '))}}</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="obj in sortedRows" :key="obj" class="even:bg-gray-100">
-          <td class="border border-gray-600 px-2 py-1" v-for="path in splitDisplayOrder" :key="path" >
-            <div v-if="path == 'email'">
-              <a class="underline" v-bind:href="'mailto:' + obj[path]">
-                {{obj[path]}}
-              </a>
-            </div>
-            <div v-else-if="path == 'website'">
-              <a class="underline" target="_blank" v-bind:href="'https://' + obj[path]">
-                {{obj[path]}}
-              </a>
-            </div>
-            <div v-else>
-              {{obj[path]}}
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <div class="mx-2 my-2" v-if="pagination === true && displayedRows.length >= pageSize">
-      <button class="float-left border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage != 1" @click="prevPage">Previous</button> 
-      <button class="float-right border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage * pageSize < displayedRows.length" @click="nextPage">Next</button>
+    <div v-else class="grid justify-items-center">
+      <h1 class="text-xl">Data cannot be obtained</h1>
     </div>
   </div>
 </template>
@@ -61,13 +66,17 @@ export default {
       pageSize:3,
       currentPage:1,
       searchForItem: '',
+      endpointError: null,
       endpointRefreshCooldown: 10000
     }
   },
   methods: {
     async getDataFromEndpoint (endpoint) {
-      let response = await axios.get(endpoint)
-      return response.data
+      let response = await axios.get(endpoint).catch((err) => {this.endpointError = err})
+      if (response.status){
+        return response.data
+      }
+
     },
     capitalizeFirstLetter (string) {
       return string.charAt(0).toUpperCase() + string.slice(1)
@@ -113,17 +122,19 @@ export default {
     }
   },
   async mounted () {
-    this.endpointRes = await this.getDataFromEndpoint(this.endpoint)
-    this.tabElements(this.endpointRes, this.splitDisplayOrder)
-    if (this.updateOnEndpointChange === true){
-      await setInterval(async () => { 
-        let res = await this.getDataFromEndpoint(this.endpoint)
-        if (JSON.stringify(res) != JSON.stringify(this.endpointRes) && res){
-          this.tabRows = []
-          this.endpointRes = res
-          this.tabElements(this.endpointRes, this.splitDisplayOrder)
-        }
-      }, this.endpointRefreshCooldown);
+    if (this.endpoint){
+      this.endpointRes = await this.getDataFromEndpoint(this.endpoint)
+      this.tabElements(this.endpointRes, this.splitDisplayOrder)
+      if (this.updateOnEndpointChange === true){
+        await setInterval(async () => { 
+          let res = await this.getDataFromEndpoint(this.endpoint)
+          if (JSON.stringify(res) != JSON.stringify(this.endpointRes) && res){
+            this.tabRows = []
+            this.endpointRes = res
+            this.tabElements(this.endpointRes, this.splitDisplayOrder)
+          }
+        }, this.endpointRefreshCooldown);
+      }
     }
   },
   computed: {
