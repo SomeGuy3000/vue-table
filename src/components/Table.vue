@@ -1,9 +1,12 @@
 <template>
   <div class="Label my-2">
-    <input type="text" v-model="searchForItem">
+    <div class="float-right my-2 " v-if="search === true">
+      Search:
+      <input class="text-gray-600 border border-gray-600 rounded-sm px-2" type="text" v-model="searchForItem" placeholder="Type something here.." @input="searchChanged">
+    </div>
     <table class="table-auto border-collapse w-full">
       <thead>
-        <tr class="text-gray-600 border-gray-600">
+        <tr class="text-gray-600">
           <th v-for="path in splitDisplayOrder" :key="path" v-bind:path="path" @click="sort(path)" >{{capitalizeFirstLetter(path.replace(/\./g,' '))}}</th>
         </tr>
       </thead>
@@ -27,9 +30,9 @@
         </tr>
       </tbody>
     </table>
-    <div class="grid grid-cols-2" v-if="pagination === true">
-      <button @click="prevPage">Previous</button> 
-      <button @click="nextPage">Next</button>
+    <div class="mx-4 my-4" v-if="pagination === true && displayedRows.length >= pageSize">
+      <button class="float-left border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage != 1" @click="prevPage">Previous</button> 
+      <button class="float-right border border-gray-600 rounded-sm bg-gray-600 text-white px-3 py-0.5" v-if="currentPage * pageSize < displayedRows.length" @click="nextPage">Next</button>
     </div>
   </div>
 </template>
@@ -51,6 +54,7 @@ export default {
       endpointRes: null,
       splitDisplayOrder: this.displayOrder.split(","),
       tabRows: [],
+      displayedRows: [],
       currentSort:'name',
       currentSortDir:'asc',
       pageSize:3,
@@ -89,7 +93,6 @@ export default {
       }
     },
     sort (sortBy) {
-      console.log(this.sorting)
       if (this.sorting === true) {
         if(sortBy === this.currentSort) {
           this.currentSortDir = this.currentSortDir==='asc'?'desc':'asc'
@@ -102,6 +105,9 @@ export default {
     },
     prevPage () {
       if(this.currentPage > 1) this.currentPage--;
+    },
+    searchChanged () {
+      this.currentPage = 1
     }
   },
   async mounted () {
@@ -119,16 +125,35 @@ export default {
         return 0
       })
       if (this.pagination === false) {
+        if (this.searchForItem != ""){
+          return this.tabRows.filter(item => {
+            return item.name.toLowerCase().indexOf(this.searchForItem.toLowerCase()) > -1
+          })
+        }
+        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
+        this.displayedRows = sortedRows;
         return sortedRows
       }
       else{
+        if (this.searchForItem != ""){
+          let filteredRows = this.tabRows.filter(item => {
+            return item.name.toLowerCase().indexOf(this.searchForItem.toLowerCase()) > -1
+          })
+          return filteredRows.filter((row, index) => {
+            let start = (this.currentPage-1)*this.pageSize
+            let end = this.currentPage*this.pageSize
+            if(index >= start && index < end) return true
+          })
+        }
+        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
+        this.displayedRows = sortedRows;
         return sortedRows.filter((row, index) => {
           let start = (this.currentPage-1)*this.pageSize
           let end = this.currentPage*this.pageSize
           if(index >= start && index < end) return true
         })
       }
-    }
+    },
   }
 }
 </script>
