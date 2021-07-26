@@ -116,7 +116,6 @@ export default {
       endpointRes: null,
       splitDisplayOrder: this.displayOrder.split(","),
       tabRows: [],
-      displayedRows: 0,
       currentSort: "name",
       currentSortDir: "asc",
       pageSize: 3,
