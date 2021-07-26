@@ -25,7 +25,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="obj in sortedRows" :key="obj" class="even:bg-gray-100">
+          <tr
+            v-for="obj in sortedRows.rowsToDisplay"
+            :key="obj"
+            class="even:bg-gray-100"
+          >
             <td
               class="border border-gray-600 px-2 py-1"
               v-for="path in splitDisplayOrder"
@@ -54,7 +58,7 @@
       </table>
       <div
         class="mx-2 my-2"
-        v-if="pagination === true && displayedRows.length >= pageSize"
+        v-if="pagination === true && sortedRows.rowsLen >= pageSize"
       >
         <button
           class="
@@ -81,7 +85,7 @@
             px-3
             py-0.5
           "
-          v-if="currentPage * pageSize < displayedRows.length"
+          v-if="currentPage * pageSize < sortedRows.rowsLen"
           @click="nextPage"
         >
           Next
@@ -124,7 +128,7 @@ export default {
   },
   methods: {
     async getDataFromEndpoint(endpoint) {
-      let response = await axios.get(endpoint).catch(function (err) {
+      let response = await axios.get(endpoint).catch(function(err) {
         this.endpointError = err;
       });
       if (response.status) {
@@ -136,7 +140,7 @@ export default {
     },
     getJsonElByPath(obj, path) {
       if (path && obj) {
-        path.forEach(function (key) {
+        path.forEach(function(key) {
           obj = obj[key];
         });
         return obj;
@@ -145,10 +149,10 @@ export default {
     async tabElements(endpointRes, splitDisplayOrder) {
       if (endpointRes && splitDisplayOrder) {
         endpointRes.forEach(
-          function (obj) {
+          function(obj) {
             let data = "";
             splitDisplayOrder.forEach(
-              function (element) {
+              function(element) {
                 data += `"${element}":"${this.getJsonElByPath(
                   obj,
                   element.split(".")
@@ -188,7 +192,7 @@ export default {
       this.tabElements(this.endpointRes, this.splitDisplayOrder);
       if (this.updateOnEndpointChange === true) {
         await setInterval(
-          async function () {
+          async function() {
             let res = await this.getDataFromEndpoint(this.endpoint);
             if (
               JSON.stringify(res) != JSON.stringify(this.endpointRes) &&
@@ -208,7 +212,7 @@ export default {
     sortedRows() {
       let rowsCoppy = this.tabRows;
       let sortedRows = rowsCoppy.sort(
-        function (a, b) {
+        function(a, b) {
           let modifier = 1;
           if (this.currentSortDir === "desc") modifier = -1;
           if (a[this.currentSort] < b[this.currentSort]) return -1 * modifier;
@@ -219,22 +223,26 @@ export default {
       if (this.pagination === false) {
         if (this.searchForItem != "") {
           return rowsCoppy.filter(
-            function (item) {
-              return (
+            function(item) {
+              let sortedRows =
                 item.name
                   .toLowerCase()
-                  .indexOf(this.searchForItem.toLowerCase()) > -1
-              );
+                  .indexOf(this.searchForItem.toLowerCase()) > -1;
+              return {
+                rowsLen: sortedRows.length,
+                rowsToDisplay: sortedRows,
+              };
             }.bind(this)
           );
         }
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        this.displayedRows = sortedRows.length;
-        return sortedRows;
+        return {
+          rowsLen: sortedRows.length,
+          rowsToDisplay: sortedRows,
+        };
       } else {
         if (this.searchForItem != "") {
           let filteredRows = rowsCoppy.filter(
-            function (item) {
+            function(item) {
               return (
                 item.name
                   .toLowerCase()
@@ -242,25 +250,29 @@ export default {
               );
             }.bind(this)
           );
-          // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-          this.displayedRows = filteredRows;
-          return filteredRows.filter(
-            function (row, index) {
+          let rowsToDisplay = filteredRows.filter(
+            function(row, index) {
               let start = (this.currentPage - 1) * this.pageSize;
               let end = this.currentPage * this.pageSize;
               if (index >= start && index < end) return true;
             }.bind(this)
           );
+          return {
+            rowsLen: filteredRows.length,
+            rowsToDisplay: rowsToDisplay,
+          };
         }
-        // eslint-disable-next-line vue/no-side-effects-in-computed-properties
-        this.displayedRows = sortedRows;
-        return sortedRows.filter(
-          function (row, index) {
+        let rowsToDisplay = sortedRows.filter(
+          function(row, index) {
             let start = (this.currentPage - 1) * this.pageSize;
             let end = this.currentPage * this.pageSize;
             if (index >= start && index < end) return true;
           }.bind(this)
         );
+        return {
+          rowsLen: sortedRows.length,
+          rowsToDisplay: rowsToDisplay,
+        };
       }
     },
   },

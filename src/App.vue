@@ -3,18 +3,18 @@
 </template>
 
 <script>
-import MiddlePopup from './components/MiddlePopup.vue'
+import MiddlePopup from "./components/MiddlePopup.vue";
 
 export default {
-  name: 'App',
+  name: "App",
   components: {
     MiddlePopup,
-  }
-}
+  },
+};
 </script>
 <style>
 body {
   background: #e8f2ff;
 }
 </style>
-<style src="./assets/tailwind.css"/>
+<style src="./assets/tailwind.css" />
